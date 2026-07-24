@@ -5,40 +5,59 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2022
+
+    runs-on: windows-latest
 
     steps:
 
+      # 拉取源码
       - name: Checkout
         uses: actions/checkout@v4
 
+
+      # 安装 Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44.8'
+          flutter-version: '3.38.0'
           channel: stable
           cache: true
 
-      - name: Enable Windows Desktop
-        run: flutter config --enable-windows-desktop
 
+      # 开启 Windows 桌面支持
+      - name: Enable Windows Desktop
+        run: |
+          flutter config --enable-windows-desktop
+
+
+      # 获取依赖
       - name: Get Dependencies
         working-directory: simple_live_app
-        run: flutter pub get
-
-      # 修复 MSVC coroutine 兼容问题
-      - name: Setup MSVC flags
-        shell: powershell
         run: |
-          echo "CMAKE_CXX_FLAGS=/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNING" >> $env:GITHUB_ENV
+          flutter pub get
 
-      - name: Build Windows
+
+      # 清理旧编译
+      - name: Flutter Clean
         working-directory: simple_live_app
         run: |
-          flutter build windows --release
+          flutter clean
+          flutter pub get
 
+
+      # 编译 Windows（软件渲染）
+      - name: Build Windows
+        working-directory: simple_live_app
+        env:
+          FLUTTER_RENDERER: software
+        run: |
+          flutter build windows --release --dart-define=FLUTTER_RENDERER=software
+
+
+      # 上传产物
       - name: Upload Windows Build
         uses: actions/upload-artifact@v4
         with:
-          name: simple-live-windows-release
+          name: simple-live-windows-software-render
           path: simple_live_app/build/windows/x64/runner/Release
+
