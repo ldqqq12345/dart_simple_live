@@ -5,14 +5,13 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
-      # 拉取源码
+
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 安装 Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -20,25 +19,24 @@ jobs:
           channel: stable
           cache: true
 
-      # 检查环境
-      - name: Flutter Doctor
-        run: flutter doctor -v
-
-      # 开启 Windows 桌面支持
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
 
-      # 获取依赖
       - name: Get Dependencies
         working-directory: simple_live_app
         run: flutter pub get
 
-      # 编译 Windows
+      # 修复 MSVC coroutine 兼容问题
+      - name: Setup MSVC flags
+        shell: powershell
+        run: |
+          echo "CMAKE_CXX_FLAGS=/D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNING" >> $env:GITHUB_ENV
+
       - name: Build Windows
         working-directory: simple_live_app
-        run: flutter build windows --release
+        run: |
+          flutter build windows --release
 
-      # 上传编译结果
       - name: Upload Windows Build
         uses: actions/upload-artifact@v4
         with:
